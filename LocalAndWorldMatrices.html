@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+</html>
+
+   <head>
+ 
+      <style>
+
+        body {
+	   background-color: #000;
+	   margin: 0px;
+	   overflow: hidden;
+        }
+
+      </style>
+
+   </head>
+
+   <body>
+
+   <script src="three.js"></script>
+   <script src="OrbitControls.js"></script>
+   <script>
+
+      var renderer, scene, camera, grandchild, child, parent, grandparent, geometry, material, geometry1, material1;
+      var geometry2, material2, geometry3, material3, controls;
+
+      var myMVM = new THREE.Matrix4();   //To store my manual calculation of the modelViewMatrix.
+      var theta = 0;                     //Controls automatic camera movement.
+
+      init();
+      animate();
+
+      function init() {
+
+
+      	  renderer = new THREE.WebGLRenderer();
+	  renderer.setSize( window.innerWidth, window.innerHeight );
+	  document.body.appendChild( renderer.domElement );
+
+	  scene = new THREE.Scene();
+	
+	  //Set up the camera.
+	  camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 1000 );
+	  camera.position.set(50.0, 0.0, 0.0 );
+          camera.lookAt(scene.position);
+        
+          scene.add(camera);   
+
+	  //This allows for panning and zooming with the mouse.
+	  controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+          //Axes.  Red,green, blue is x,y,z.
+	  scene.add( new THREE.AxisHelper( 20 ) );
+
+          //Grandparent.  This is the largest cube.  It is a 'child' of scene.
+          geometry3 = new THREE.BoxGeometry( 6, 6, 6 );
+	  material3 = new THREE.MeshNormalMaterial({transparent:true,opacity:0.5});
+          grandparent = new THREE.Mesh( geometry3, material3 );
+          scene.add(grandparent); 
+
+          //Translate by x = 0.5 relative to scene.
+	  grandparent.translateX(0.5);
+ 
+          //Parent.  This is the 2nd largest cube.  Its own transformation is superimposed on the transformation of 'grandparent'.  
+	  geometry2 = new THREE.BoxGeometry( 4, 4, 4 );
+	  material2 = new THREE.MeshNormalMaterial({transparent:true,opacity:0.5});
+	  parent = new THREE.Mesh( geometry2, material2 );
+          grandparent.add(parent);
+
+          //Translate by 6 + 0.5 = 6.5 relative to scene.
+          parent.translateX(6.0);
+	
+          //Child.  As well as its own translation, it inherits translation from 'parent', and hence also from 'grandparent'.
+          geometry1 = new THREE.BoxGeometry( 3, 3, 3 );
+	  material1 = new THREE.MeshNormalMaterial({transparent:true,opacity:0.5});       
+	  child = new THREE.Mesh( geometry1, material1 ); 
+          parent.add(child);
+
+          //Translate by 6 + 0.5 + 4 = 10.5 relative to scene.
+          child.translateX(4.0);
+
+          //Grandchild.  Inherits from all its ancestors.
+          geometry = new THREE.BoxGeometry( 8, 2, 2 );
+	  material = new THREE.MeshNormalMaterial();       
+	  grandchild = new THREE.Mesh( geometry, material ); 
+          child.add(grandchild);
+
+          //Translate by 13.5 relative to scene.
+          grandchild.translateX(3.0); 
+
+
+          scene.updateMatrixWorld();   //For grandchild.updateMatrixWorld() to be correct, the full ancestor chain needs updating too.
+          alert(grandchild.matrix.elements);              //Gives 3 in x position.
+          alert(grandchild.matrixWorld.elements);         //Gives 13.5 in x position.
+        
+   
+          //Temporarily store camera's inverse matrixWorld in myMVM.
+          myMVM.getInverse(camera.matrixWorld);
+
+
+          //Set myMVM to the grandchild's modelViewMatrix.
+          myMVM.multiplyMatrices(myMVM, grandchild.matrixWorld);
+
+
+          //When the camera looks toward origin from (50,0,0), the positional component of grandchild.modelViewMatrix is 13.5 - 50.
+          alert(myMVM.elements);
+      }
+
+
+      function animate() {
+
+          grandchild.translateX(0.05); 
+    
+          requestAnimationFrame( animate );
+
+          renderer.render( scene, camera );  //This performs matrix updating automatically.
+
+          theta = 0.01 + theta;
+
+          //The z position is left as a degree of freedom so that the user has some degree of control with the mouse.
+          camera.position.x = 50.0 * Math.cos(theta);
+          camera.position.y = 50.0 * Math.sin(theta);
+
+          camera.lookAt(scene.position);
+
+          //(These update automatically during the rendering process.)
+          //camera.updateMatrixWorld();
+          //camera.updateProjectionMatrix();
+      }
+
+    </script>
+
+  </body>
+
+</html>
